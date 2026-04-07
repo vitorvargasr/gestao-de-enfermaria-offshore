@@ -31,9 +31,12 @@ import {
 } from 'lucide-react'
 import medGroupLogo from '@/assets/logo-b4757.jpg'
 import { AppHeader } from '@/components/AppHeader'
+import { useAuth } from '@/hooks/use-auth'
 
 export default function Layout() {
   const location = useLocation()
+  const { user } = useAuth()
+  const userRole = (user as any)?.role || ''
 
   const navItems = [
     { icon: LayoutDashboard, label: 'Dashboard', href: '/' },
@@ -43,7 +46,9 @@ export default function Layout() {
     { icon: ClipboardCheck, label: 'Auditorias', href: '/audits' },
     { icon: Stethoscope, label: 'Equipamentos', href: '/equipments' },
     { icon: AlertTriangle, label: 'Ocorrências', href: '/occurrences' },
-    { icon: FileBadge, label: 'Medical Chest', href: '/medical-chest' },
+    ...(userRole === 'admin' || userRole === 'certifier'
+      ? [{ icon: FileBadge, label: 'Medical Chest', href: '/medical-chest' }]
+      : []),
     { icon: FileText, label: 'Relatórios', href: '/reports' },
     { icon: BarChart3, label: 'Painel BI', href: '/bi' },
     { icon: QrCode, label: 'Scanner QR', href: '/scanner' },
@@ -57,7 +62,7 @@ export default function Layout() {
           <SidebarHeader className="border-b p-4">
             <div className="flex items-center gap-2">
               <HeartPulse className="h-6 w-6 text-primary" />
-              <span className="font-bold text-lg text-primary">Poseidon Offshore</span>
+              <span className="font-bold text-lg text-primary">International Health Care</span>
             </div>
           </SidebarHeader>
           <SidebarContent>

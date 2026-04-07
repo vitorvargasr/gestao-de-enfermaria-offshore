@@ -180,7 +180,7 @@ export default function MedicalChestNew() {
 
   useEffect(() => {
     const userRole = (user as any)?.role || ''
-    if (!['admin', 'pharmacist', 'certifier'].includes(userRole)) {
+    if (!['admin', 'certifier'].includes(userRole)) {
       toast.error('Unauthorized access')
       navigate('/medical-chest')
       return

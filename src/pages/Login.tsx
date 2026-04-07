@@ -60,8 +60,8 @@ export default function Login() {
               className="object-contain w-full h-full"
             />
           </div>
-          <CardTitle className="text-2xl font-bold">Acesso ao Sistema</CardTitle>
-          <CardDescription>Gestão de Enfermaria Marítima</CardDescription>
+          <CardTitle className="text-2xl font-bold">International Health Care</CardTitle>
+          <CardDescription>Sistema de Gestão de Enfermaria</CardDescription>
         </CardHeader>
         <form onSubmit={handleLogin}>
           <CardContent className="space-y-4">

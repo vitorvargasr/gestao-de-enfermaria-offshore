@@ -24,7 +24,9 @@ export function AppHeader() {
             <div className="h-10 w-10 bg-white rounded flex items-center justify-center overflow-hidden border shadow-sm p-1">
               <img src={logoUrl} alt="IHCare Logo" className="h-full w-full object-contain" />
             </div>
-            <span className="hidden font-bold sm:inline-block text-lg">Enfermaria Offshore</span>
+            <span className="hidden font-bold sm:inline-block text-lg">
+              International Health Care
+            </span>
           </Link>
         </div>
 

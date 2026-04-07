@@ -29,7 +29,7 @@ export default function MedicalChest() {
   const [searchTerm, setSearchTerm] = useState('')
   const { user } = useAuth()
   const userRole = (user as any)?.role || ''
-  const canIssue = ['admin', 'pharmacist', 'certifier'].includes(userRole)
+  const canIssue = ['admin', 'certifier'].includes(userRole)
 
   const loadCerts = () => {
     getCertificates().then(setCerts).catch(console.error)
