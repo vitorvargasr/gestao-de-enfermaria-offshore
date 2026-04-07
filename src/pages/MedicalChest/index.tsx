@@ -174,3 +174,6 @@ export default function MedicalChest() {
           </Table>
         </CardContent>
       </Card>
+    </div>
+  )
+}
