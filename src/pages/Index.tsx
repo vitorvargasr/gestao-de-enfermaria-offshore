@@ -212,4 +212,12 @@ export default function Index() {
               ))}
             </div>
           ) : (
-            <div className="text-cent
+            <div className="text-center text-sm text-slate-500 py-4">
+              Nenhum item vencendo nos próximos 90 dias.
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  )
+}

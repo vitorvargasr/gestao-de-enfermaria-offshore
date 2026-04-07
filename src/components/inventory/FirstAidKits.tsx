@@ -1240,4 +1240,27 @@ function DraftsDialog() {
                   <TableCell className="text-right">
                     <Button size="sm" onClick={() => handleOrder(draft.id)} className="shadow-sm">
                       Aprovar Pedido
-   
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {drafts.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
+                    <CheckCircle2 className="h-10 w-10 mx-auto text-emerald-500 mb-3 opacity-80" />
+                    <span className="block text-lg font-medium text-foreground">
+                      Estoque Equilibrado
+                    </span>
+                    <span className="block mt-1">
+                      Nenhum rascunho de reposição pendente de aprovação.
+                    </span>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
