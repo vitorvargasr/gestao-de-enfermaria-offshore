@@ -1,33 +1,70 @@
-import { SidebarTrigger } from '@/components/ui/sidebar'
+import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
-import { LogOut } from 'lucide-react'
 import { useAuth } from '@/hooks/use-auth'
-import { useNavigate } from 'react-router-dom'
+import { LogOut, User as UserIcon } from 'lucide-react'
+import logoUrl from '@/assets/ihcare-e4285.jpg'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 
 export function AppHeader() {
-  const { signOut } = useAuth()
-  const navigate = useNavigate()
-
-  const handleSignOut = async () => {
-    await signOut()
-    navigate('/login', { replace: true })
-  }
+  const { user, signOut } = useAuth()
 
   return (
-    <header className="flex h-16 shrink-0 items-center justify-between border-b bg-white/50 backdrop-blur-sm px-4 dark:bg-slate-950/50">
-      <div className="flex items-center gap-2">
-        <SidebarTrigger />
-        <div className="font-semibold text-lg ml-2">Enfermaria Marítima</div>
+    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="container flex h-16 items-center justify-between mx-auto px-4 md:px-8">
+        <div className="flex items-center gap-4">
+          <Link to="/" className="flex items-center gap-2">
+            <div className="h-10 w-10 bg-white rounded flex items-center justify-center overflow-hidden border shadow-sm p-1">
+              <img src={logoUrl} alt="IHCare Logo" className="h-full w-full object-contain" />
+            </div>
+            <span className="hidden font-bold sm:inline-block text-lg">Enfermaria Offshore</span>
+          </Link>
+        </div>
+
+        <div className="flex flex-1 items-center justify-end space-x-4">
+          {user && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-9 w-9 rounded-full">
+                  <Avatar className="h-9 w-9">
+                    <AvatarFallback className="bg-primary/10 text-primary">
+                      {user.name?.charAt(0)?.toUpperCase() || <UserIcon className="h-4 w-4" />}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56" align="end" forceMount>
+                <DropdownMenuLabel className="font-normal">
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">{user.name}</p>
+                    <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
+                    {user.role && (
+                      <p className="text-xs font-semibold uppercase text-primary mt-1">
+                        Perfil: {user.role}
+                      </p>
+                    )}
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={signOut}
+                  className="text-red-600 cursor-pointer focus:bg-red-50 focus:text-red-600"
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Sair do sistema</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
       </div>
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={handleSignOut}
-        className="gap-2 text-muted-foreground hover:text-foreground"
-      >
-        <LogOut className="h-4 w-4" />
-        <span className="hidden sm:inline">Sair</span>
-      </Button>
     </header>
   )
 }

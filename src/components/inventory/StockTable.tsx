@@ -1,4 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import pb from '@/lib/pocketbase/client'
+import { useRealtime } from '@/hooks/use-realtime'
 import {
   Table,
   TableBody,
@@ -8,207 +10,36 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { isBefore, parseISO, format, differenceInDays } from 'date-fns'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import {
-  AlertCircle,
-  CheckCircle2,
-  AlertTriangle,
-  ScanLine,
-  Clock,
-  FileEdit,
-  Plus,
-} from 'lucide-react'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog'
-import { Label } from '@/components/ui/label'
-import { Button } from '@/components/ui/button'
-import { getKitItems, createKitItem, updateKitItem, type KitItem } from '@/services/kit_items'
-import { getKits, type Kit } from '@/services/kits'
-import { useRealtime } from '@/hooks/use-realtime'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { toast } from 'sonner'
+import { Search, AlertTriangle } from 'lucide-react'
+import { format, differenceInDays } from 'date-fns'
 
-function ItemDialog({ item, onSuccess }: { item?: KitItem; onSuccess: () => void }) {
-  const [open, setOpen] = useState(false)
-  const [loading, setLoading] = useState(false)
-
-  const [formData, setFormData] = useState({
-    name: '',
-    category: '',
-    serial: '',
-    location: '',
-    quantity: '',
-    lot: '',
-    validity: '',
-    kit: '',
-  })
-
-  useEffect(() => {
-    if (open) {
-      setFormData({
-        name: item?.name || '',
-        category: item?.category || '',
-        serial: item?.serial || '',
-        location: item?.location || '',
-        quantity: item?.quantity?.toString() || '',
-        lot: item?.lot || '',
-        validity: item?.validity ? item.validity.substring(0, 10) : '',
-        kit: item?.kit || '',
-      })
-    }
-  }, [open, item])
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    try {
-      const payload: any = {
-        ...formData,
-        quantity: Number(formData.quantity),
-      }
-
-      if (payload.validity) {
-        payload.validity = new Date(payload.validity + 'T12:00:00Z').toISOString()
-      }
-
-      if (!payload.kit) {
-        payload.kit = ''
-      }
-
-      if (item) {
-        await updateKitItem(item.id, payload)
-        toast.success('Item atualizado com sucesso!')
-      } else {
-        await createKitItem(payload)
-        toast.success('Item inserido no estoque com sucesso!')
-      }
-      setOpen(false)
-      onSuccess()
-    } catch (err: any) {
-      console.error(err)
-      toast.error(err.message || 'Erro ao salvar item.')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        {item ? (
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-8 gap-1 px-2 text-slate-600 hover:text-slate-900"
-          >
-            <FileEdit className="w-3.5 h-3.5" /> Editar
-          </Button>
-        ) : (
-          <Button className="gap-2 bg-slate-900 hover:bg-slate-800 text-white dark:bg-slate-50 dark:text-slate-900 dark:hover:bg-slate-200">
-            <Plus className="h-4 w-4" /> Inserir Manualmente
-          </Button>
-        )}
-      </DialogTrigger>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>{item ? 'Editar Item' : 'Inserir Novo Item'}</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4 pt-2">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2 col-span-2">
-              <Label>Nome</Label>
-              <Input
-                required
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Ex: Paracetamol 500mg"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Categoria</Label>
-              <Input
-                required
-                value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                placeholder="Ex: Medicamento, Ampola"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Quantidade</Label>
-              <Input
-                type="number"
-                required
-                min="1"
-                value={formData.quantity}
-                onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Lote</Label>
-              <Input
-                required
-                value={formData.lot}
-                onChange={(e) => setFormData({ ...formData, lot: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Validade</Label>
-              <Input
-                type="date"
-                required
-                value={formData.validity}
-                onChange={(e) => setFormData({ ...formData, validity: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Serial (Opcional)</Label>
-              <Input
-                value={formData.serial}
-                onChange={(e) => setFormData({ ...formData, serial: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Localização (Opcional)</Label>
-              <Input
-                value={formData.location}
-                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                placeholder="Ex: Prateleira A"
-              />
-            </div>
-          </div>
-          <Button type="submit" className="w-full mt-2" disabled={loading}>
-            {loading ? 'Salvando...' : 'Salvar'}
-          </Button>
-        </form>
-      </DialogContent>
-    </Dialog>
-  )
+interface InventoryItem {
+  id: string
+  name: string
+  category: string
+  quantity: number
+  min_threshold: number
+  expiry_date: string
 }
 
-export default function StockTable() {
-  const [items, setItems] = useState<KitItem[]>([])
-  const [kits, setKits] = useState<Kit[]>([])
-  const now = new Date()
+export function StockTable() {
+  const [items, setItems] = useState<InventoryItem[]>([])
+  const [searchTerm, setSearchTerm] = useState('')
+  const [isLoading, setIsLoading] = useState(true)
 
   const loadData = async () => {
     try {
-      const [fetchedItems, fetchedKits] = await Promise.all([getKitItems('kit = ""'), getKits()])
-      setItems(fetchedItems)
-      setKits(fetchedKits)
-    } catch (err) {
-      console.error('Failed to load data', err)
+      setIsLoading(true)
+      const records = await pb.collection('inventory').getFullList<InventoryItem>({
+        sort: 'expiry_date',
+      })
+      setItems(records)
+    } catch (error) {
+      console.error('Failed to load inventory', error)
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -216,120 +47,119 @@ export default function StockTable() {
     loadData()
   }, [])
 
-  useRealtime('kit_items', () => {
+  useRealtime('inventory', () => {
     loadData()
   })
 
-  return (
-    <div className="space-y-4 h-full flex flex-col">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-lg font-semibold tracking-tight">Itens no Estoque Geral</h2>
-          <p className="text-sm text-muted-foreground">Itens não associados a nenhum kit</p>
-        </div>
-        <ItemDialog onSuccess={loadData} />
-      </div>
+  const filteredItems = items.filter(
+    (item) =>
+      item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.category.toLowerCase().includes(searchTerm.toLowerCase()),
+  )
 
-      <div className="border rounded-md bg-white shadow-sm overflow-hidden flex-1 flex flex-col">
-        <div className="overflow-auto flex-1">
+  const getStatus = (item: InventoryItem) => {
+    if (!item.expiry_date) return { label: 'Válido', variant: 'default' as const }
+
+    const daysToExpiry = differenceInDays(new Date(item.expiry_date), new Date())
+
+    if (daysToExpiry < 0) return { label: 'Expirado', variant: 'destructive' as const }
+    if (daysToExpiry <= 60)
+      return { label: 'Próximo do Vencimento', variant: 'outline' as const, isWarning: true }
+
+    return { label: 'Válido', variant: 'secondary' as const }
+  }
+
+  const getStockStatus = (item: InventoryItem) => {
+    if (item.quantity <= 0) return { label: 'Sem Estoque', color: 'text-red-500' }
+    if (item.quantity <= item.min_threshold)
+      return { label: 'Estoque Baixo', color: 'text-yellow-500' }
+    return { label: 'Normal', color: 'text-green-500' }
+  }
+
+  return (
+    <Card className="w-full shadow-sm">
+      <CardHeader className="pb-4 border-b">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <CardTitle>Controle de Estoque</CardTitle>
+            <CardDescription>Gestão de medicamentos, consumíveis e equipamentos.</CardDescription>
+          </div>
+          <div className="relative w-full md:w-72">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="Buscar itens..."
+              className="pl-8"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="p-0">
+        <div className="overflow-x-auto">
           <Table>
-            <TableHeader className="bg-slate-50 sticky top-0 z-10 shadow-sm">
-              <TableRow>
-                <TableHead className="font-semibold">Item / Medicamento</TableHead>
+            <TableHeader>
+              <TableRow className="bg-muted/50">
+                <TableHead className="font-semibold">Item</TableHead>
                 <TableHead className="font-semibold">Categoria</TableHead>
-                <TableHead className="font-semibold">Lote</TableHead>
+                <TableHead className="font-semibold text-right">Qtd</TableHead>
+                <TableHead className="font-semibold text-right">Mínimo</TableHead>
                 <TableHead className="font-semibold">Validade</TableHead>
                 <TableHead className="font-semibold">Status</TableHead>
-                <TableHead className="w-[180px] font-semibold text-right">Qtd. Atual</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {items.length === 0 ? (
+              {isLoading ? (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                    Nenhum item encontrado no estoque.
+                    Carregando estoque...
+                  </TableCell>
+                </TableRow>
+              ) : filteredItems.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                    Nenhum item encontrado.
                   </TableCell>
                 </TableRow>
               ) : (
-                items.map((item) => {
-                  const expiryDate = item.validity ? parseISO(item.validity) : new Date()
-                  const isExpired = isBefore(expiryDate, now)
-                  const daysToExpire = differenceInDays(expiryDate, now)
-                  const minQuantity = 10
-                  const isLowStock = item.quantity <= minQuantity
-
-                  let statusNode
-                  if (isExpired) {
-                    statusNode = (
-                      <Badge variant="destructive" className="gap-1.5 py-1">
-                        <AlertCircle className="w-3.5 h-3.5" /> Vencido
-                      </Badge>
-                    )
-                  } else if (daysToExpire >= 0 && daysToExpire <= 90) {
-                    statusNode = (
-                      <Badge
-                        variant="secondary"
-                        className="gap-1.5 py-1 bg-orange-100 text-orange-800 hover:bg-orange-200"
-                      >
-                        <Clock className="w-3.5 h-3.5" /> Vence em {daysToExpire} dias
-                      </Badge>
-                    )
-                  } else if (isLowStock) {
-                    statusNode = (
-                      <Badge
-                        variant="secondary"
-                        className="gap-1.5 py-1 bg-amber-100 text-amber-800 hover:bg-amber-200"
-                      >
-                        <AlertTriangle className="w-3.5 h-3.5" /> Estoque Baixo
-                      </Badge>
-                    )
-                  } else {
-                    statusNode = (
-                      <Badge
-                        variant="secondary"
-                        className="gap-1.5 py-1 bg-green-100 text-green-800 hover:bg-green-200"
-                      >
-                        <CheckCircle2 className="w-3.5 h-3.5" /> OK
-                      </Badge>
-                    )
-                  }
+                filteredItems.map((item) => {
+                  const status = getStatus(item)
+                  const stockStatus = getStockStatus(item)
 
                   return (
-                    <TableRow key={item.id} className="hover:bg-slate-50/50">
-                      <TableCell className="font-medium text-slate-900">
-                        <div className="flex flex-col">
+                    <TableRow key={item.id} className="hover:bg-muted/30 transition-colors">
+                      <TableCell className="font-medium">{item.name}</TableCell>
+                      <TableCell className="capitalize">{item.category}</TableCell>
+                      <TableCell className={`text-right font-medium ${stockStatus.color}`}>
+                        {item.quantity}
+                      </TableCell>
+                      <TableCell className="text-right text-muted-foreground">
+                        {item.min_threshold}
+                      </TableCell>
+                      <TableCell>
+                        {item.expiry_date ? (
                           <div className="flex items-center gap-2">
-                            {item.name}
-                            {item.serial && (
-                              <ScanLine
-                                className="w-3.5 h-3.5 text-slate-400"
-                                title={`Serial: ${item.serial}`}
-                              />
+                            {format(new Date(item.expiry_date), 'dd/MM/yyyy')}
+                            {status.isWarning && (
+                              <AlertTriangle className="h-4 w-4 text-yellow-500" />
                             )}
                           </div>
-                          {item.location && (
-                            <span className="text-xs text-slate-500">Loc: {item.location}</span>
-                          )}
-                        </div>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
                       </TableCell>
-                      <TableCell className="text-slate-600">{item.category || '-'}</TableCell>
-                      <TableCell className="text-slate-600 font-mono text-sm">
-                        {item.lot || '-'}
-                      </TableCell>
-                      <TableCell className="text-slate-600 font-mono text-sm">
-                        {item.validity ? format(expiryDate, 'dd/MM/yyyy') : '-'}
-                      </TableCell>
-                      <TableCell>{statusNode}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-3">
-                          <div className="flex items-baseline gap-1">
-                            <span className="font-mono font-semibold text-base text-slate-900 dark:text-white">
-                              {item.quantity}
-                            </span>
-                            <span className="text-xs text-slate-500">un</span>
-                          </div>
-                          <ItemDialog item={item} onSuccess={loadData} />
-                        </div>
+                      <TableCell>
+                        <Badge
+                          variant={status.variant}
+                          className={
+                            status.isWarning
+                              ? 'border-yellow-500 text-yellow-600 bg-yellow-50 hover:bg-yellow-100'
+                              : ''
+                          }
+                        >
+                          {status.label}
+                        </Badge>
                       </TableCell>
                     </TableRow>
                   )
@@ -338,7 +168,7 @@ export default function StockTable() {
             </TableBody>
           </Table>
         </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   )
 }
