@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useRealtime } from '@/hooks/use-realtime'
-import { Plus, Printer, Search } from 'lucide-react'
+import { Plus, Printer, Search, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -18,6 +18,7 @@ import {
   getCertificates,
   uploadCertificatePdf,
   getCertificatePdfUrl,
+  deleteCertificate,
 } from '@/services/medical_chest'
 import { useAuth } from '@/hooks/use-auth'
 import { toast } from 'sonner'
@@ -48,12 +49,27 @@ export default function MedicalChest() {
     return isNaN(date.getTime()) ? '-' : format(date, 'dd/MM/yyyy')
   }
 
+  const handleDelete = async (id: string) => {
+    if (window.confirm('Are you sure you want to delete this certificate?')) {
+      try {
+        await deleteCertificate(id)
+        toast.success('Certificate deleted successfully')
+        loadCerts()
+      } catch (err) {
+        toast.error('Failed to delete certificate')
+        console.error(err)
+      }
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Medical Chest Certificates</h1>
-          <p className="text-muted-foreground">Manage and view vessel compliance certificates.</p>
+          <h1 className="text-3xl font-bold tracking-tight">IHC - Medical Chest</h1>
+          <p className="text-muted-foreground">
+            Manage and view International Health Care vessel compliance certificates.
+          </p>
         </div>
         {canIssue && (
           <Button asChild>
@@ -156,33 +172,55 @@ export default function MedicalChest() {
                                 </Link>
                               </Button>
                               {canIssue && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="relative cursor-pointer"
-                                >
-                                  Upload Signed PDF
-                                  <input
-                                    type="file"
-                                    accept="application/pdf"
-                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                    onChange={async (e) => {
-                                      const file = e.target.files?.[0]
-                                      if (file) {
-                                        try {
-                                          await uploadCertificatePdf(cert.id, file)
-                                          toast.success('PDF uploaded successfully')
-                                          getCertificates().then(setCerts)
-                                        } catch (err) {
-                                          toast.error('Failed to upload PDF')
-                                          console.error(err)
+                                <>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="relative cursor-pointer"
+                                  >
+                                    Upload Signed PDF
+                                    <input
+                                      type="file"
+                                      accept="application/pdf"
+                                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                      onChange={async (e) => {
+                                        const file = e.target.files?.[0]
+                                        if (file) {
+                                          try {
+                                            await uploadCertificatePdf(cert.id, file)
+                                            toast.success('PDF uploaded successfully')
+                                            getCertificates().then(setCerts)
+                                          } catch (err) {
+                                            toast.error('Failed to upload PDF')
+                                            console.error(err)
+                                          }
                                         }
-                                      }
-                                    }}
-                                  />
-                                </Button>
+                                      }}
+                                    />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                    onClick={() => handleDelete(cert.id)}
+                                    title="Delete Certificate"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </>
                               )}
                             </>
+                          )}
+                          {canIssue && cert.pdf_file && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                              onClick={() => handleDelete(cert.id)}
+                              title="Delete Certificate"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
                           )}
                         </div>
                       </TableCell>

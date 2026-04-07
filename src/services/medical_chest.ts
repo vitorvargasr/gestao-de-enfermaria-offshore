@@ -15,6 +15,10 @@ export async function createCertificate(data: Partial<MedicalChestCertificate>) 
   return pb.collection('medical_chest_certificates').create(data)
 }
 
+export async function deleteCertificate(id: string) {
+  return pb.collection('medical_chest_certificates').delete(id)
+}
+
 export async function uploadCertificatePdf(id: string, file: File) {
   const formData = new FormData()
   formData.append('pdf_file', file)

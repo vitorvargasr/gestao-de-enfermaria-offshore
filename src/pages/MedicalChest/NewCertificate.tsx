@@ -92,9 +92,9 @@ function generateSimplePDF(data: any): Uint8Array {
   const expirySafe = parseDateSafe(data.expiry_date)
 
   const streamContent = `BT
-/F2 18 Tf
+/F2 16 Tf
 100 720 Td
-(MEDICAL CHEST CERTIFICATE) Tj
+(INTERNATIONAL HEALTH CARE - MEDICAL CHEST CERTIFICATE) Tj
 /F1 12 Tf
 0 -40 Td
 (Certificate Number: ${s(data.certificate_number)}) Tj
@@ -243,9 +243,10 @@ export default function MedicalChestNew() {
   return (
     <div className="max-w-3xl mx-auto space-y-6 pb-12">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Issue Certificate</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Issue IHC Certificate</h1>
         <p className="text-muted-foreground">
-          Fill in the certificate details. Compliance will be verified upon submission.
+          Fill in the certificate details for International Health Care compliance. Conformance will
+          be verified upon submission.
         </p>
       </div>
 
