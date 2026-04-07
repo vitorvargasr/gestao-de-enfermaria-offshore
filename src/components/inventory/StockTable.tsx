@@ -17,7 +17,8 @@ import { format, differenceInDays } from 'date-fns'
 
 interface InventoryItem {
   id: string
-  item_name: string
+  item_name?: string
+  name?: string
   category: string
   quantity: number
   min_threshold: number
@@ -53,7 +54,7 @@ export function StockTable() {
 
   const filteredItems = items.filter(
     (item) =>
-      (item.item_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (item.item_name || item.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (item.category || '').toLowerCase().includes(searchTerm.toLowerCase()),
   )
 
@@ -129,7 +130,7 @@ export function StockTable() {
 
                   return (
                     <TableRow key={item.id} className="hover:bg-muted/30 transition-colors">
-                      <TableCell className="font-medium">{item.item_name}</TableCell>
+                      <TableCell className="font-medium">{item.item_name || item.name}</TableCell>
                       <TableCell className="capitalize">{item.category}</TableCell>
                       <TableCell className={`text-right font-medium ${stockStatus.color}`}>
                         {item.quantity}
