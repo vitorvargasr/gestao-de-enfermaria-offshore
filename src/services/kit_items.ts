@@ -3,21 +3,20 @@ import pb from '@/lib/pocketbase/client'
 export interface KitItem {
   id: string
   kit: string
-  name: string
+  item: string
   quantity: number
-  lot: string
-  validity: string
-  serial?: string
-  category?: string
-  location?: string
   created: string
   updated: string
+  expand?: {
+    kit?: any
+    item?: any
+  }
 }
 
 export const getKitItems = async (filter?: string): Promise<KitItem[]> => {
   return await pb.collection('kit_items').getFullList<KitItem>({
     sort: '-created',
-    expand: 'kit',
+    expand: 'kit,item',
     filter,
   })
 }
