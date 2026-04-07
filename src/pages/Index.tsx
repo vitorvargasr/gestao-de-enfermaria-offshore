@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { format } from 'date-fns'
+import { format, isValid } from 'date-fns'
 import { Activity, AlertTriangle, Users } from 'lucide-react'
 import { useRealtime } from '@/hooks/use-realtime'
 import { getDashboardData, DashboardData } from '@/services/dashboard'
@@ -45,6 +45,12 @@ export default function Index() {
 
   const hasOutbreak = data.chartData.some((d) => d.casos > 3)
   const chartConfig = { casos: { label: 'Casos', color: '#3b82f6' } }
+
+  const safeFormatDate = (dateStr: string | undefined | null) => {
+    if (!dateStr) return 'N/A'
+    const date = new Date(dateStr)
+    return isValid(date) ? format(date, 'dd/MM/yyyy') : 'N/A'
+  }
 
   return (
     <div className="p-4 md:p-6 max-w-6xl mx-auto space-y-6 animate-in fade-in duration-500">
@@ -163,7 +169,7 @@ export default function Index() {
                       <p className="text-sm text-slate-500 mt-0.5">{c.symptom}</p>
                     </div>
                     <div className="text-xs text-slate-500 bg-slate-50 px-2 py-1 rounded-md h-fit border border-slate-100 whitespace-nowrap">
-                      {format(new Date(c.date), 'dd/MM/yyyy')}
+                      {safeFormatDate(c.date)}
                     </div>
                   </div>
                 ))}
@@ -200,7 +206,7 @@ export default function Index() {
                     <span className="text-orange-700/80 font-medium">(Lote: {item.lot})</span>
                   </span>
                   <span className="text-sm font-medium text-orange-800 bg-white/60 px-2.5 py-1 rounded shadow-sm">
-                    Vence em: {format(new Date(item.validity), 'dd/MM/yyyy')}
+                    Vence em: {safeFormatDate(item.validity)}
                   </span>
                 </div>
               ))}

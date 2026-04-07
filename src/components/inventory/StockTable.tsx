@@ -61,7 +61,10 @@ export function StockTable() {
   const getStatus = (item: InventoryItem) => {
     if (!item.expiry_date) return { label: 'Válido', variant: 'default' as const }
 
-    const daysToExpiry = differenceInDays(new Date(item.expiry_date), new Date())
+    const expiryDate = new Date(item.expiry_date)
+    if (isNaN(expiryDate.getTime())) return { label: 'Data Inválida', variant: 'default' as const }
+
+    const daysToExpiry = differenceInDays(expiryDate, new Date())
 
     if (daysToExpiry < 0) return { label: 'Expirado', variant: 'destructive' as const }
     if (daysToExpiry <= 60)
@@ -139,7 +142,7 @@ export function StockTable() {
                         {item.min_threshold}
                       </TableCell>
                       <TableCell>
-                        {item.expiry_date ? (
+                        {item.expiry_date && !isNaN(new Date(item.expiry_date).getTime()) ? (
                           <div className="flex items-center gap-2">
                             {format(new Date(item.expiry_date), 'dd/MM/yyyy')}
                             {status.isWarning && (

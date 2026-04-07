@@ -85,7 +85,10 @@ export function FirstAidKits({ initialOpenKitId }: FirstAidKitsProps) {
         const thirtyDays = addDays(now, 30)
 
         for (const item of kitItems) {
+          if (!item.validity) continue
           const exp = new Date(item.validity)
+          if (isNaN(exp.getTime())) continue
+
           if (isBefore(exp, now)) {
             status = 'vencido'
             break
@@ -153,7 +156,11 @@ export function FirstAidKits({ initialOpenKitId }: FirstAidKitsProps) {
               {expiringItems.slice(0, 3).map((item) => (
                 <li key={item.id}>
                   <strong>{item.expand?.kit?.name || 'Kit Desconhecido'}</strong>: {item.name}{' '}
-                  (Vence em: {format(new Date(item.validity), 'dd/MM/yyyy')})
+                  (Vence em:{' '}
+                  {item.validity && !isNaN(new Date(item.validity).getTime())
+                    ? format(new Date(item.validity), 'dd/MM/yyyy')
+                    : 'N/A'}
+                  )
                 </li>
               ))}
               {expiringItems.length > 3 && (
@@ -661,9 +668,10 @@ function KitItemsTable({ kitId, kits }: { kitId: string; kits: any[] }) {
         </TableHeader>
         <TableBody>
           {items.map((item) => {
-            const expDate = new Date(item.validity)
-            const isExpired = isBefore(expDate, new Date())
-            const isExpiringSoon = isBefore(expDate, addDays(new Date(), 30))
+            const hasValidDate = item.validity && !isNaN(new Date(item.validity).getTime())
+            const expDate = hasValidDate ? new Date(item.validity) : null
+            const isExpired = expDate ? isBefore(expDate, new Date()) : false
+            const isExpiringSoon = expDate ? isBefore(expDate, addDays(new Date(), 30)) : false
             return (
               <TableRow key={item.id} className="group">
                 <TableCell className="font-medium">{item.name}</TableCell>
@@ -672,9 +680,16 @@ function KitItemsTable({ kitId, kits }: { kitId: string; kits: any[] }) {
                   {item.serial || '-'}
                 </TableCell>
                 <TableCell className="text-center font-medium">{item.quantity}</TableCell>
-                <TableCell>{format(expDate, 'dd/MM/yyyy')}</TableCell>
+                <TableCell>{expDate ? format(expDate, 'dd/MM/yyyy') : 'N/A'}</TableCell>
                 <TableCell>
-                  {isExpired ? (
+                  {!hasValidDate ? (
+                    <Badge
+                      variant="outline"
+                      className="shadow-none rounded-md bg-slate-50 text-slate-500"
+                    >
+                      N/A
+                    </Badge>
+                  ) : isExpired ? (
                     <Badge variant="destructive" className="shadow-none rounded-md">
                       Vencido
                     </Badge>
@@ -979,7 +994,12 @@ function KitInspectionDialog({ kit }: { kit: any }) {
                     </span>
                   )}
                   <span>Qtd Ideal: {item.quantity}</span>
-                  <span>Vencimento: {format(new Date(item.validity), 'dd/MM/yyyy')}</span>
+                  <span>
+                    Vencimento:{' '}
+                    {item.validity && !isNaN(new Date(item.validity).getTime())
+                      ? format(new Date(item.validity), 'dd/MM/yyyy')
+                      : 'N/A'}
+                  </span>
                 </div>
               </div>
               <div className="flex gap-3 flex-col sm:flex-row w-full md:w-auto">
