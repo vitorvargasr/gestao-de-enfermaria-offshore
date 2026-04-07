@@ -96,8 +96,8 @@ export default function MedicalChest() {
                 certs
                   .filter(
                     (c) =>
-                      c.vessel_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                      c.imo.toLowerCase().includes(searchTerm.toLowerCase()),
+                      (c.vessel_name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+                      (c.imo?.toLowerCase() || '').includes(searchTerm.toLowerCase()),
                   )
                   .map((cert) => (
                     <TableRow key={cert.id}>
