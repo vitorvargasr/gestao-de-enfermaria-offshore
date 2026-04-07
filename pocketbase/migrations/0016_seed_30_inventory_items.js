@@ -227,10 +227,10 @@ migrate(
 
     for (const item of items) {
       try {
-        app.findFirstRecordByData('inventory', 'name', item.name)
+        app.findFirstRecordByData('inventory', 'item_name', item.name)
       } catch (_) {
         const record = new Record(inventory)
-        record.set('name', item.name)
+        record.set('item_name', item.name)
         record.set('category', item.category)
         record.set('quantity', item.quantity)
         record.set('min_threshold', item.min_threshold)
