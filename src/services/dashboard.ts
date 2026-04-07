@@ -21,21 +21,35 @@ export const getDashboardData = async (): Promise<DashboardData> => {
     fortyEightHoursAgo.toISOString().replace('T', ' ').substring(0, 19) + 'Z'
 
   const [
-    totalConsultations,
-    observationConsultations,
-    expiringItems,
-    recentConsultations,
-    recent48hConsultations,
-  ] = await Promise.all([
+    totalConsultationsRes,
+    expiringItemsRes,
+    recentConsultationsRes,
+    recent48hConsultationsRes,
+  ] = await Promise.allSettled([
     pb.collection('consultations').getList(1, 1),
-    pb.collection('consultations').getList(1, 1, { filter: `status = 'observation'` }),
-    pb.collection('kit_items').getFullList({
-      filter: `validity <= "${ninetyDaysStr}"`,
-      sort: 'validity',
+    pb.collection('inventory').getFullList({
+      filter: `expiry_date <= "${ninetyDaysStr}"`,
+      sort: 'expiry_date',
     }),
     pb.collection('consultations').getList(1, 5, { sort: '-date' }),
-    pb.collection('consultations').getFullList({ filter: `date >= "${fortyEightHoursAgoStr}"` }),
+    pb.collection('consultations').getFullList({
+      filter: `date >= "${fortyEightHoursAgoStr}"`,
+      expand: 'crew_member',
+    }),
   ])
+
+  const totalConsultations =
+    totalConsultationsRes.status === 'fulfilled' ? totalConsultationsRes.value.totalItems : 0
+
+  const expiringItems = expiringItemsRes.status === 'fulfilled' ? expiringItemsRes.value : []
+
+  const recentConsultations =
+    recentConsultationsRes.status === 'fulfilled' ? recentConsultationsRes.value.items : []
+
+  const recent48hConsultations =
+    recent48hConsultationsRes.status === 'fulfilled' ? recent48hConsultationsRes.value : []
+
+  const observationConsultations = 0 // Not available in current schema
 
   const sectors = ['Convés', 'Ponte', 'Casa de Máquinas', 'Cozinha', 'Acomodações']
   const sectorCounts = sectors.reduce(
@@ -44,8 +58,9 @@ export const getDashboardData = async (): Promise<DashboardData> => {
   )
 
   recent48hConsultations.forEach((c) => {
-    if (sectorCounts[c.sector] !== undefined) {
-      sectorCounts[c.sector]++
+    const department = c.expand?.crew_member?.department
+    if (department && sectorCounts[department] !== undefined) {
+      sectorCounts[department]++
     }
   })
 
@@ -54,16 +69,18 @@ export const getDashboardData = async (): Promise<DashboardData> => {
     casos: sectorCounts[sector],
   }))
 
-  const overdueCount = expiringItems.filter((item) => new Date(item.validity) < now).length
+  const overdueCount = expiringItems.filter(
+    (item) => item.expiry_date && new Date(item.expiry_date) < now,
+  ).length
   const expiringCount = expiringItems.length - overdueCount
 
   return {
-    totalConsultations: totalConsultations.totalItems,
-    observationConsultations: observationConsultations.totalItems,
+    totalConsultations,
+    observationConsultations,
     expiringItemsTotal: expiringItems.length,
     overdueCount,
     expiringCount,
-    recentConsultations: recentConsultations.items,
+    recentConsultations,
     chartData,
     expiringItems,
   }
