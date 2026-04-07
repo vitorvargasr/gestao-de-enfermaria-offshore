@@ -69,16 +69,12 @@ export interface Incident {
 
 export interface MedicalChestCertificate {
   id: string
-  vessel_name: string
-  imo: string
+  certificate_number: string
   issue_date: string
-  po_ref: string
-  valid_until: string
-  flag: string
-  ship_reg: string
-  inspector_name: string
-  signature: string
-  pdf_file?: string
+  expiry_date: string
+  issuing_authority: string
+  status: 'valid' | 'expired' | 'pending_renewal'
+  notes?: string
   created: string
   updated: string
 }
