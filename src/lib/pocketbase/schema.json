@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-07T04:17:19.397Z",
+  "generatedAt": "2026-04-07T04:22:55.136Z",
   "collections": [
     {
       "name": "users",
@@ -37,6 +37,13 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "role",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": ["admin", "doctor", "nurse", "certifier"]
         }
       ],
       "indexes": [
@@ -456,6 +463,24 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "vessel_name",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "imo",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "pdf_file",
+          "type": "file",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": []

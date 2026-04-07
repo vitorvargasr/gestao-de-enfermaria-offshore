@@ -21,11 +21,10 @@ import {
 } from '@/services/medical_chest'
 import { useAuth } from '@/hooks/use-auth'
 import { toast } from 'sonner'
-import type { MedicalChestCertificate } from '@/types'
 import { format } from 'date-fns'
 
 export default function MedicalChest() {
-  const [certs, setCerts] = useState<MedicalChestCertificate[]>([])
+  const [certs, setCerts] = useState<any[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const { user } = useAuth()
   const userRole = (user as any)?.role || ''
@@ -42,6 +41,12 @@ export default function MedicalChest() {
   useRealtime('medical_chest_certificates', () => {
     loadCerts()
   })
+
+  const safeFormatDate = (dateString: string | undefined) => {
+    if (!dateString) return '-'
+    const date = new Date(dateString)
+    return isNaN(date.getTime()) ? '-' : format(date, 'dd/MM/yyyy')
+  }
 
   return (
     <div className="space-y-6">
@@ -66,7 +71,7 @@ export default function MedicalChest() {
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"
-              placeholder="Search by vessel or IMO..."
+              placeholder="Search by Cert. Number or Vessel..."
               className="pl-8"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -77,11 +82,11 @@ export default function MedicalChest() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>Cert. Number</TableHead>
                 <TableHead>Vessel Name</TableHead>
-                <TableHead>IMO</TableHead>
                 <TableHead>Issue Date</TableHead>
-                <TableHead>Valid Until</TableHead>
-                <TableHead>Inspector</TableHead>
+                <TableHead>Expiry Date</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -96,27 +101,41 @@ export default function MedicalChest() {
                 certs
                   .filter(
                     (c) =>
+                      (c.certificate_number?.toLowerCase() || '').includes(
+                        searchTerm.toLowerCase(),
+                      ) ||
                       (c.vessel_name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-                      (c.imo?.toLowerCase() || '').includes(searchTerm.toLowerCase()),
+                      (c.issuing_authority?.toLowerCase() || '').includes(searchTerm.toLowerCase()),
                   )
                   .map((cert) => (
                     <TableRow key={cert.id}>
-                      <TableCell className="font-medium">{cert.vessel_name}</TableCell>
-                      <TableCell>{cert.imo}</TableCell>
-                      <TableCell>{format(new Date(cert.issue_date), 'dd/MM/yyyy')}</TableCell>
+                      <TableCell className="font-medium">
+                        {cert.certificate_number || '-'}
+                      </TableCell>
+                      <TableCell>{cert.vessel_name || '-'}</TableCell>
+                      <TableCell>{safeFormatDate(cert.issue_date)}</TableCell>
+                      <TableCell>{safeFormatDate(cert.expiry_date)}</TableCell>
                       <TableCell>
-                        {new Date(cert.valid_until) < new Date() ? (
+                        {cert.status === 'expired' ? (
                           <Badge variant="destructive">Expired</Badge>
-                        ) : (
+                        ) : cert.status === 'pending_renewal' ? (
+                          <Badge
+                            variant="outline"
+                            className="bg-amber-50 text-amber-600 border-amber-200"
+                          >
+                            Pending Renewal
+                          </Badge>
+                        ) : cert.status === 'valid' ? (
                           <Badge
                             variant="outline"
                             className="bg-emerald-50 text-emerald-600 border-emerald-200"
                           >
                             Valid
                           </Badge>
+                        ) : (
+                          <Badge variant="outline">{cert.status || 'Unknown'}</Badge>
                         )}
                       </TableCell>
-                      <TableCell>{cert.inspector_name}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end items-center gap-2">
                           {cert.pdf_file ? (

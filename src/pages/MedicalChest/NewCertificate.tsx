@@ -16,6 +16,13 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { useAuth } from '@/hooks/use-auth'
 import {
   checkNonConformities,
@@ -26,15 +33,14 @@ import { toast } from 'sonner'
 import { format } from 'date-fns'
 
 const formSchema = z.object({
+  certificate_number: z.string().min(2, 'Required'),
   vessel_name: z.string().min(2, 'Required'),
-  imo: z.string().min(2, 'Required'),
+  imo: z.string().optional(),
   issue_date: z.string().min(1, 'Required'),
-  po_ref: z.string().optional(),
-  valid_until: z.string().min(1, 'Required'),
-  flag: z.string().min(2, 'Required'),
-  ship_reg: z.string().min(2, 'Required'),
-  inspector_name: z.string().min(2, 'Required'),
-  signature: z.string().min(2, 'Required'),
+  expiry_date: z.string().min(1, 'Required'),
+  issuing_authority: z.string().min(2, 'Required'),
+  status: z.enum(['valid', 'expired', 'pending_renewal']),
+  notes: z.string().optional(),
 })
 
 function sanitizePDFString(str: string) {
@@ -76,34 +82,38 @@ function generateSimplePDF(data: any): Uint8Array {
   )
   addLine('endobj')
 
+  const parseDateSafe = (d: string) => {
+    if (!d) return '-'
+    const date = new Date(d)
+    return isNaN(date.getTime()) ? '-' : format(date, 'dd/MM/yyyy')
+  }
+
+  const issueSafe = parseDateSafe(data.issue_date)
+  const expirySafe = parseDateSafe(data.expiry_date)
+
   const streamContent = `BT
 /F2 18 Tf
 100 720 Td
 (MEDICAL CHEST CERTIFICATE) Tj
 /F1 12 Tf
 0 -40 Td
-(Vessel Name: ${s(data.vessel_name)}) Tj
+(Certificate Number: ${s(data.certificate_number)}) Tj
 0 -20 Td
-(IMO: ${s(data.imo)}) Tj
+(Vessel Name: ${s(data.vessel_name || '-')}) Tj
 0 -20 Td
-(Issue Date: ${s(format(new Date(data.issue_date), 'dd/MM/yyyy'))}) Tj
+(IMO: ${s(data.imo || '-')}) Tj
 0 -20 Td
-(Valid Until: ${s(format(new Date(data.valid_until), 'dd/MM/yyyy'))}) Tj
+(Issue Date: ${s(issueSafe)}) Tj
 0 -20 Td
-(Flag: ${s(data.flag)}) Tj
+(Expiry Date: ${s(expirySafe)}) Tj
 0 -20 Td
-(Ship REG: ${s(data.ship_reg)}) Tj
+(Authority: ${s(data.issuing_authority)}) Tj
 0 -20 Td
-(PO# Ref: ${s(data.po_ref || 'N/A')}) Tj
+(Status: ${s(data.status)}) Tj
 0 -40 Td
 (We certify that the hospital of the ship was inspected and it is in accordance) Tj
 0 -20 Td
 (with the provisions of the International Maritime Organization.) Tj
-0 -60 Td
-(Inspector: ${s(data.inspector_name)}) Tj
-/F2 16 Tf
-0 -30 Td
-(Signature: ${s(data.signature)}) Tj
 ET`
 
   objects.push(currentOffset)
@@ -160,15 +170,14 @@ export default function MedicalChestNew() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      certificate_number: '',
       vessel_name: '',
       imo: '',
       issue_date: new Date().toISOString().split('T')[0],
-      po_ref: '',
-      valid_until: '',
-      flag: '',
-      ship_reg: '',
-      inspector_name: user?.name || '',
-      signature: '',
+      expiry_date: '',
+      issuing_authority: user?.name || '',
+      status: 'valid',
+      notes: '',
     },
   })
 
@@ -204,20 +213,20 @@ export default function MedicalChestNew() {
       setValidationSuccess(true)
 
       const data = {
+        certificate_number: values.certificate_number,
         vessel_name: values.vessel_name,
-        imo: values.imo,
+        imo: values.imo || '',
         issue_date: new Date(values.issue_date).toISOString(),
-        po_ref: values.po_ref || '',
-        valid_until: new Date(values.valid_until).toISOString(),
-        flag: values.flag,
-        ship_reg: values.ship_reg,
-        inspector_name: values.inspector_name,
-        signature: values.signature,
+        expiry_date: new Date(values.expiry_date).toISOString(),
+        issuing_authority: values.issuing_authority,
+        status: values.status,
+        notes: values.notes || '',
       }
+
       const record = await createCertificate(data)
 
       const pdfBytes = generateSimplePDF(data)
-      const file = new File([pdfBytes], `certificate_${values.imo}.pdf`, {
+      const file = new File([pdfBytes], `certificate_${values.certificate_number}.pdf`, {
         type: 'application/pdf',
       })
       await uploadCertificatePdf(record.id, file)
@@ -236,7 +245,7 @@ export default function MedicalChestNew() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Issue Certificate</h1>
         <p className="text-muted-foreground">
-          Fill in the vessel details. Compliance will be verified upon submission.
+          Fill in the certificate details. Compliance will be verified upon submission.
         </p>
       </div>
 
@@ -289,6 +298,19 @@ export default function MedicalChestNew() {
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
+                  name="certificate_number"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Certificate Number</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="e.g. CERT-2026-001" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
                   name="vessel_name"
                   render={({ field }) => (
                     <FormItem>
@@ -306,6 +328,19 @@ export default function MedicalChestNew() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>IMO Number</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="Optional" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="issuing_authority"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Issuing Authority</FormLabel>
                       <FormControl>
                         <Input {...field} />
                       </FormControl>
@@ -328,10 +363,10 @@ export default function MedicalChestNew() {
                 />
                 <FormField
                   control={form.control}
-                  name="valid_until"
+                  name="expiry_date"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Valid Until</FormLabel>
+                      <FormLabel>Expiry Date</FormLabel>
                       <FormControl>
                         <Input type="date" {...field} />
                       </FormControl>
@@ -341,52 +376,22 @@ export default function MedicalChestNew() {
                 />
                 <FormField
                   control={form.control}
-                  name="po_ref"
+                  name="status"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>PO# Reference</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="Optional" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="flag"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Flag</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="ship_reg"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Ship INT REG</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="inspector_name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Certifier Name</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
+                      <FormLabel>Status</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select status" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="valid">Valid</SelectItem>
+                          <SelectItem value="expired">Expired</SelectItem>
+                          <SelectItem value="pending_renewal">Pending Renewal</SelectItem>
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -394,16 +399,12 @@ export default function MedicalChestNew() {
               </div>
               <FormField
                 control={form.control}
-                name="signature"
+                name="notes"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Digital Signature (Type your full name to sign)</FormLabel>
+                    <FormLabel>Notes</FormLabel>
                     <FormControl>
-                      <Input
-                        {...field}
-                        className="font-serif italic text-lg"
-                        placeholder="John Doe"
-                      />
+                      <Input {...field} placeholder="Optional notes" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
